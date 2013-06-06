@@ -1,0 +1,6 @@
+cache*
+figure*
+*.html
+*.md
+.Rproj.user
+Martin_GutMicrobiome.Rproj
