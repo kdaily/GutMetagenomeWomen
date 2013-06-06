@@ -178,7 +178,7 @@ importance.table <- xtable(head(importance.strains, 30))
 print(importance.table, type="html")
 ```
 
-Let's look at how the data clusters using the proximities from the random forest.
+Let's look at how the data clusters by applying multidimensional scaling (MDS) to the proximities from the strain-based random forest.
 
 ```{r mdsstrains,fig.width=7, fig.height=6,echo=FALSE,warning=FALSE}
 MDSplot(rf.strains, strain.data$Classification)
@@ -201,6 +201,7 @@ importance.table <- xtable(head(importance.clusters, 30))
 print(importance.table, type="html")
 ```
 
+Here's how the data clusters by applying multidimensional scaling (MDS) to the proximities from the MGC-based random forest.
 
 ```{r mdsclusters,fig.width=7, fig.height=6,echo=FALSE,warning=FALSE}
 MDSplot(rf.cluster, cluster.data$Classification)
