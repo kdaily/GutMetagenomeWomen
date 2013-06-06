@@ -1,0 +1,108 @@
+Gut metagenome in European women with normal, impaired and diabetic glucose control
+========================================================
+
+```{r echo=FALSE, warning=FALSE,message=FALSE}
+library(randomForest)
+library(ggplot2)
+library(xtable)
+```
+
+
+This is an attempt to recreate the figures in the paper "Gut metagenome in European women with normal, impaired and diabetic glucose control". Their methods included the training of a random forest for diabetes prediction. The data used for training was obtained from the authors.
+
+
+```{r cache=TRUE}
+cluster.table <- read.delim("data/ClusterTable.txt", sep="\t", header=TRUE)
+strain.table <- read.delim("data/StrainTable.txt", sep="\t", header=TRUE)
+supptable3 <- read.csv("data/SuppTable3.csv")
+```
+They focus on the T2D and NGT classes. There is another class present in the sample (IGT), but I will remove these data points.
+
+```{r subsetsupptable,cache=TRUE}
+supptable3 <- subset(supptable3, Classification != "IGT")
+supptable3 <- transform(supptable3, Classification=factor(Classification))
+```
+
+We need to combine the classifications with the abundances:
+```{r combinedata,cache=TRUE}
+cluster.table <- merge(supptable3[, c("Sample.ID", "Classification")], cluster.table, by.x="Sample.ID", by.y="Subjects")
+strain.table <- merge(supptable3[, c("Sample.ID", "Classification")], strain.table, by.x="Sample.ID", by.y="Subject")
+```
+
+A view of number of subjects per group:
+
+```{r histogram,fig.width=7,fig.height=6,echo=TRUE}
+p <- ggplot(cluster.table, aes(x=Classification))
+p <- p + geom_bar()
+p
+```
+
+A summary of *Lactobacillus gasseri_361* abundances, which is one that is cited as being significantly different between the T2D and NGT groups using the MGCs:
+
+```{r fig.width=7, fig.height=6,echo=FALSE,warning=FALSE}
+p <- ggplot(cluster.table, aes(x=Classification, y=Lactobacillus.gasseri_361))
+p <- p + geom_boxplot() + scale_y_log10()
+p
+```
+
+A summary of *Lactobacillus gasseri JV-V03* abundances, which is one that is cited as being significantly different between the T2D and NGT groups using the MGCs:
+
+```{r fig.width=7, fig.height=6,echo=FALSE,warning=FALSE}
+p <- ggplot(strain.table, aes(x=Classification, y=Lactobacillus.gasseri.JV.V03))
+p <- p + geom_boxplot() + scale_y_log10()
+p
+```
+
+Let's try to train a random forest, first using the strain abundances. First, in figure 1 the authors say they used 915 species; however, their species/strain table has 2075 species. I'm assuming they used the 915 most abundant ones, so let's compute that.
+
+```{r topstrains}
+strain.data <- strain.table[, -1]
+strain.mean.abundances <- apply(strain.data[, -1], 2, mean)
+
+# Add one to account for the column I left out
+strain.mean.abundances.ordered <- order(strain.mean.abundances, decreasing=TRUE) + 1
+
+# Top 915 by mean
+strain.data.top <- strain.data[, c(1, head(strain.mean.abundances.ordered, 915))]
+
+```
+
+Now, for the random forest training:
+
+```{r rfstrains, cache=TRUE}
+rf.strains <- randomForest(Classification ~ ., data=strain.data.top,
+                           mtry=500, replace=TRUE, ntree=10000,
+                           importance=TRUE, proximity=TRUE,
+                           do.trace=1000)
+```
+
+```{r importancestrains,results='asis'}
+importance.strains <- rf.strains$importance
+importance.strains <- importance.strains[order(importance.strains[, "MeanDecreaseAccuracy"], decreasing=TRUE), ]
+importance.table <- xtable(head(importance.strains, 30))
+print(importance.table, type="html")
+```
+
+
+```{r mdsstrains,fig.width=7, fig.height=6,echo=FALSE,warning=FALSE}
+MDSplot(rf.strains, strain.data.top$Classification)
+```
+
+```{r rfcluster, cache=TRUE}
+cluster.data <- cluster.table[, -1]
+rf.cluster <- randomForest(Classification ~ ., data=cluster.data,
+                           mtry=500, replace=TRUE, ntree=10000,
+                           importance=TRUE, proximity=TRUE,
+                           do.trace=1000)
+```
+
+```{r importanceclusters,results='asis'}
+importance.clusters <- rf.cluster$importance[order(rf.cluster$importance[, "MeanDecreaseAccuracy"], decreasing=TRUE), ]
+importance.table <- xtable(head(importance.clusters, 30))
+print(importance.table, type="html")
+```
+
+
+```{r mdsclusters,fig.width=7, fig.height=6,echo=FALSE,warning=FALSE}
+MDSplot(rf.cluster, cluster.data$Classification)
+```
