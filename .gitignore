@@ -1,7 +1,7 @@
 cache*
 figure*
-*.html
-*.md
+index.html
+index.md
 .Rproj.user
 .Rhistory
 .RData
