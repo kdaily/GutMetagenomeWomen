@@ -5,6 +5,7 @@ Gut metagenome in European women with normal, impaired and diabetic glucose cont
 library(randomForest)
 library(ggplot2)
 library(xtable)
+library(plyr)
 ```
 
 
@@ -27,6 +28,24 @@ We need to combine the classifications with the abundances:
 ```{r combinedata,cache=TRUE}
 cluster.table <- merge(supptable3[, c("Sample.ID", "Classification")], cluster.table, by.x="Sample.ID", by.y="Subjects")
 strain.table <- merge(supptable3[, c("Sample.ID", "Classification")], strain.table, by.x="Sample.ID", by.y="Subject")
+
+cluster.data <- cluster.table[, -1]
+strain.data <- strain.table[, -1]
+
+```
+
+The "Statistical Analysis" section of the methods says that they only included species with an abundance of at least $10^{-5}$ in any subject.
+
+```{r topstrains,message=FALSE}
+min.abundance <- 10**-5
+strain.keep.abundances <- which(apply(strain.data[, -1], 2, function(x) any(x >= min.abundance)))
+
+# Add one to account for the column I left out
+strain.keep.abundances <- strain.keep.abundances + 1
+
+# Top 915 by mean
+strain.data <- strain.data[, c(1, strain.keep.abundances)]
+
 ```
 
 A view of number of subjects per group:
@@ -37,6 +56,65 @@ p <- p + geom_bar()
 p
 ```
 
+Let's compute the Wilcoxon statistics between the T2D and NGT groups for all strains.
+
+```{r wilcoxfn,echo=FALSE,results='hide'}
+# Helper function for computing wilcoxon and getting the p-value column-wise from a matrix
+do.wilcoxon <- function(df, classif, ...) {
+  colnames(df) <- "value"
+  tmpdf <- data.frame(Classification=classif, value=df)
+  wilcox.test(formula=value ~ Classification, data=tmpdf, ...)$p.val
+}
+```
+
+```{r wilcoxon.strains,cache=TRUE}
+wilcoxon.strains.gr <- adply(.data=strain.data[, -1], 2, .fun=do.wilcoxon, classif=strain.data[, 1], alternative="g")
+colnames(wilcoxon.strains.gr) <- c("Species", "p.val")
+wilcoxon.strains.gr <- transform(wilcoxon.strains.gr, p.adj=p.adjust(p.val, method="BH"))
+wilcoxon.strains.gr <- wilcoxon.strains.gr[order(wilcoxon.strains.gr$p.adj, decreasing=FALSE), ]
+wilcoxon.strains.gr <- subset(wilcoxon.strains.gr, p.adj <= 0.05)
+
+wilcoxon.strains.le <- adply(.data=strain.data[, -1], 2, .fun=do.wilcoxon, classif=strain.data[, 1], alternative="l")
+colnames(wilcoxon.strains.le) <- c("Species", "p.val")
+wilcoxon.strains.le <- transform(wilcoxon.strains.le, p.adj=p.adjust(p.val, method="BH"))
+wilcoxon.strains.le <- wilcoxon.strains.le[order(wilcoxon.strains.le$p.adj, decreasing=FALSE), ]
+wilcoxon.strains.le <- subset(wilcoxon.strains.le, p.adj <= 0.05)
+```
+
+```{r diff.strains.gr,results='asis'}
+tbl.strains.gr <- xtable(wilcoxon.strains.gr)
+print(tbl.strains.gr, type="html")
+```
+
+```{r diff.strains.le,results='asis'}
+tbl.strains.le <- xtable(wilcoxon.strains.le)
+print(tbl.strains.le, type="html")
+```
+
+```{r wilcoxon.cluster,cache=TRUE}
+wilcoxon.cluster.gr <- adply(.data=cluster.data[, -1], 2, .fun=do.wilcoxon, classif=cluster.data[, 1], alternative="g")
+colnames(wilcoxon.cluster.gr) <- c("Species", "p.val")
+wilcoxon.cluster.gr <- transform(wilcoxon.cluster.gr, p.adj=p.adjust(p.val, method="BH"))
+wilcoxon.cluster.gr <- wilcoxon.cluster.gr[order(wilcoxon.cluster.gr$p.adj, decreasing=FALSE), ]
+wilcoxon.cluster.gr <- subset(wilcoxon.cluster.gr, p.adj <= 0.05)
+
+wilcoxon.cluster.le <- adply(.data=cluster.data[, -1], 2, .fun=do.wilcoxon, classif=cluster.data[, 1], alternative="l")
+colnames(wilcoxon.cluster.le) <- c("Species", "p.val")
+wilcoxon.cluster.le <- transform(wilcoxon.cluster.le, p.adj=p.adjust(p.val, method="BH"))
+wilcoxon.cluster.le <- wilcoxon.cluster.le[order(wilcoxon.cluster.le$p.adj, decreasing=FALSE), ]
+wilcoxon.cluster.le <- subset(wilcoxon.cluster.le, p.adj <= 0.05)
+```
+
+```{r diff.cluster.gr,results='asis'}
+tbl.cluster.gr <- xtable(wilcoxon.cluster.gr)
+print(tbl.cluster.gr, type="html")
+```
+
+```{r diff.cluster.le,results='asis'}
+tbl.cluster.le <- xtable(wilcoxon.cluster.le)
+print(tbl.cluster.le, type="html")
+```
+
 A summary of *Lactobacillus gasseri_361* abundances, which is one that is cited as being significantly different between the T2D and NGT groups using the MGCs:
 
 ```{r boxplot1,fig.width=7, fig.height=6,echo=FALSE,warning=FALSE}
@@ -45,7 +123,7 @@ p <- p + geom_boxplot() + scale_y_log10()
 p
 ```
 
-A summary of *Lactobacillus gasseri JV-V03* abundances, which is one that is cited as being significantly different between the T2D and NGT groups using the MGCs:
+A summary of *Lactobacillus gasseri JV-V03* abundances, which is one that is cited as being significantly different between the T2D and NGT groups using the species:
 
 ```{r boxplot2,fig.width=7, fig.height=6,echo=FALSE,warning=FALSE}
 p <- ggplot(strain.table, aes(x=Classification, y=Lactobacillus.gasseri.JV.V03))
@@ -53,24 +131,12 @@ p <- p + geom_boxplot() + scale_y_log10()
 p
 ```
 
-Let's try to train a random forest, first using the strain abundances. First, in figure 1 the authors say they used 915 species; however, their species/strain table has 2075 species. I'm assuming they used the 915 most abundant ones, so let's compute that.
-
-```{r topstrains,message=FALSE}
-strain.data <- strain.table[, -1]
-strain.mean.abundances <- apply(strain.data[, -1], 2, mean)
-
-# Add one to account for the column I left out
-strain.mean.abundances.ordered <- order(strain.mean.abundances, decreasing=TRUE) + 1
-
-# Top 915 by mean
-strain.data.top <- strain.data[, c(1, head(strain.mean.abundances.ordered, 915))]
-
-```
+Let's try to train a random forest, first using the strain abundances. First, in figure 1 the authors say they used 915 species; however, their species/strain table has 2075 species. 
 
 Now, for the random forest training:
 
 ```{r rfstrains, cache=TRUE}
-rf.strains <- randomForest(Classification ~ ., data=strain.data.top,
+rf.strains <- randomForest(Classification ~ ., data=strain.data,
                            mtry=500, replace=TRUE, ntree=10000,
                            importance=TRUE, proximity=TRUE,
                            do.trace=1000)
@@ -86,13 +152,12 @@ print(importance.table, type="html")
 Let's look at how the data clusters using the proximities from the random forest.
 
 ```{r mdsstrains,fig.width=7, fig.height=6,echo=FALSE,warning=FALSE}
-MDSplot(rf.strains, strain.data.top$Classification)
+MDSplot(rf.strains, strain.data$Classification)
 ```
 
 Now, let's train a random forest using the MGCs.
 
 ```{r rfcluster, cache=TRUE}
-cluster.data <- cluster.table[, -1]
 rf.cluster <- randomForest(Classification ~ ., data=cluster.data,
                            mtry=500, replace=TRUE, ntree=10000,
                            importance=TRUE, proximity=TRUE,
