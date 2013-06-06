@@ -26,8 +26,12 @@ supptable3 <- transform(supptable3, Classification=factor(Classification))
 
 We need to combine the classifications with the abundances:
 ```{r combinedata,cache=TRUE}
-cluster.table <- merge(supptable3[, c("Sample.ID", "Classification")], cluster.table, by.x="Sample.ID", by.y="Subjects")
-strain.table <- merge(supptable3[, c("Sample.ID", "Classification")], strain.table, by.x="Sample.ID", by.y="Subject")
+cluster.table <- merge(supptable3[, c("Sample.ID", "Classification")],
+                       cluster.table,
+                       by.x="Sample.ID", by.y="Subjects")
+strain.table <- merge(supptable3[, c("Sample.ID", "Classification")],
+                      strain.table,
+                      by.x="Sample.ID", by.y="Subject")
 
 cluster.data <- cluster.table[, -1]
 strain.data <- strain.table[, -1]
@@ -38,7 +42,8 @@ The "Statistical Analysis" section of the methods says that they only included s
 
 ```{r topstrains,message=FALSE}
 min.abundance <- 10**-5
-strain.keep.abundances <- which(apply(strain.data[, -1], 2, function(x) any(x >= min.abundance)))
+strain.keep.abundances <- which(apply(strain.data[, -1], 2, 
+                                      function(x) any(x >= min.abundance)))
 
 # Add one to account for the column I left out
 strain.keep.abundances <- strain.keep.abundances + 1
@@ -167,7 +172,8 @@ rf.strains <- randomForest(Classification ~ ., data=strain.data,
 
 ```{r importancestrains,results='asis'}
 importance.strains <- rf.strains$importance
-importance.strains <- importance.strains[order(importance.strains[, "MeanDecreaseAccuracy"], decreasing=TRUE), ]
+importance.strains <- importance.strains[order(importance.strains[, "MeanDecreaseAccuracy"], 
+                                               decreasing=TRUE), ]
 importance.table <- xtable(head(importance.strains, 30))
 print(importance.table, type="html")
 ```
@@ -189,7 +195,8 @@ rf.cluster <- randomForest(Classification ~ ., data=cluster.data,
 
 Here are the top 30 variables ranked by accuracy using the MGCs as features:
 ```{r importanceclusters,results='asis'}
-importance.clusters <- rf.cluster$importance[order(rf.cluster$importance[, "MeanDecreaseAccuracy"], decreasing=TRUE), ]
+importance.clusters <- rf.cluster$importance[order(rf.cluster$importance[, "MeanDecreaseAccuracy"], 
+                                                   decreasing=TRUE), ]
 importance.table <- xtable(head(importance.clusters, 30))
 print(importance.table, type="html")
 ```
