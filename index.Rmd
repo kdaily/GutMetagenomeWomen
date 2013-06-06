@@ -68,16 +68,26 @@ do.wilcoxon <- function(df, classif, ...) {
 ```
 
 ```{r wilcoxon.strains,cache=TRUE}
-wilcoxon.strains.gr <- adply(.data=strain.data[, -1], 2, .fun=do.wilcoxon, classif=strain.data[, 1], alternative="g")
+wilcoxon.strains.gr <- adply(.data=strain.data[, -1], 2,
+                             .fun=do.wilcoxon,
+                             classif=strain.data[, 1],
+                             alternative="g")
 colnames(wilcoxon.strains.gr) <- c("Species", "p.val")
-wilcoxon.strains.gr <- transform(wilcoxon.strains.gr, p.adj=p.adjust(p.val, method="BH"))
-wilcoxon.strains.gr <- wilcoxon.strains.gr[order(wilcoxon.strains.gr$p.adj, decreasing=FALSE), ]
+wilcoxon.strains.gr <- transform(wilcoxon.strains.gr, 
+                                 p.adj=p.adjust(p.val, method="BH"))
+wilcoxon.strains.gr <- wilcoxon.strains.gr[order(wilcoxon.strains.gr$p.adj, 
+                                                 decreasing=FALSE), ]
 wilcoxon.strains.gr <- subset(wilcoxon.strains.gr, p.adj <= 0.05)
 
-wilcoxon.strains.le <- adply(.data=strain.data[, -1], 2, .fun=do.wilcoxon, classif=strain.data[, 1], alternative="l")
+wilcoxon.strains.le <- adply(.data=strain.data[, -1], 2,
+                             .fun=do.wilcoxon,
+                             classif=strain.data[, 1],
+                             alternative="l")
 colnames(wilcoxon.strains.le) <- c("Species", "p.val")
-wilcoxon.strains.le <- transform(wilcoxon.strains.le, p.adj=p.adjust(p.val, method="BH"))
-wilcoxon.strains.le <- wilcoxon.strains.le[order(wilcoxon.strains.le$p.adj, decreasing=FALSE), ]
+wilcoxon.strains.le <- transform(wilcoxon.strains.le,
+                                 p.adj=p.adjust(p.val, method="BH"))
+wilcoxon.strains.le <- wilcoxon.strains.le[order(wilcoxon.strains.le$p.adj,
+                                                 decreasing=FALSE), ]
 wilcoxon.strains.le <- subset(wilcoxon.strains.le, p.adj <= 0.05)
 ```
 
@@ -92,16 +102,29 @@ print(tbl.strains.le, type="html")
 ```
 
 ```{r wilcoxon.cluster,cache=TRUE}
-wilcoxon.cluster.gr <- adply(.data=cluster.data[, -1], 2, .fun=do.wilcoxon, classif=cluster.data[, 1], alternative="g")
+wilcoxon.cluster.gr <- adply(.data=cluster.data[, -1], 2, 
+                             .fun=do.wilcoxon,
+                             classif=cluster.data[, 1], 
+                             alternative="g")
+
 colnames(wilcoxon.cluster.gr) <- c("Species", "p.val")
-wilcoxon.cluster.gr <- transform(wilcoxon.cluster.gr, p.adj=p.adjust(p.val, method="BH"))
-wilcoxon.cluster.gr <- wilcoxon.cluster.gr[order(wilcoxon.cluster.gr$p.adj, decreasing=FALSE), ]
+
+wilcoxon.cluster.gr <- transform(wilcoxon.cluster.gr, 
+                                 p.adj=p.adjust(p.val, method="BH"))
+wilcoxon.cluster.gr <- wilcoxon.cluster.gr[order(wilcoxon.cluster.gr$p.adj, 
+                                                decreasing=FALSE), ]
 wilcoxon.cluster.gr <- subset(wilcoxon.cluster.gr, p.adj <= 0.05)
 
-wilcoxon.cluster.le <- adply(.data=cluster.data[, -1], 2, .fun=do.wilcoxon, classif=cluster.data[, 1], alternative="l")
+wilcoxon.cluster.le <- adply(.data=cluster.data[, -1], 2,
+                             .fun=do.wilcoxon,
+                             classif=cluster.data[, 1],
+                             alternative="l")
+
 colnames(wilcoxon.cluster.le) <- c("Species", "p.val")
-wilcoxon.cluster.le <- transform(wilcoxon.cluster.le, p.adj=p.adjust(p.val, method="BH"))
-wilcoxon.cluster.le <- wilcoxon.cluster.le[order(wilcoxon.cluster.le$p.adj, decreasing=FALSE), ]
+wilcoxon.cluster.le <- transform(wilcoxon.cluster.le, 
+                                 p.adj=p.adjust(p.val, method="BH"))
+wilcoxon.cluster.le <- wilcoxon.cluster.le[order(wilcoxon.cluster.le$p.adj, 
+                                                 decreasing=FALSE), ]
 wilcoxon.cluster.le <- subset(wilcoxon.cluster.le, p.adj <= 0.05)
 ```
 
