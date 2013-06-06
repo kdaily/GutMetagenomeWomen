@@ -1,7 +1,7 @@
 Gut metagenome in European women with normal, impaired and diabetic glucose control
 ========================================================
 
-```{r echo=FALSE, warning=FALSE,message=FALSE}
+```{r loadlibs,echo=FALSE, warning=FALSE,message=FALSE}
 library(randomForest)
 library(ggplot2)
 library(xtable)
@@ -16,7 +16,7 @@ cluster.table <- read.delim("data/ClusterTable.txt", sep="\t", header=TRUE)
 strain.table <- read.delim("data/StrainTable.txt", sep="\t", header=TRUE)
 supptable3 <- read.csv("data/SuppTable3.csv")
 ```
-They focus on the T2D and NGT classes. There is another class present in the sample (IGT), but I will remove these data points.
+They focus on the Type II diabetes (T2D) and normal glucose tolerance (NGT) classes. There is another class present in the sample (impaired glucose tolerance; IGT), but I will remove these data points.
 
 ```{r subsetsupptable,cache=TRUE}
 supptable3 <- subset(supptable3, Classification != "IGT")
