@@ -11,7 +11,7 @@ library(xtable)
 This is an attempt to recreate the figures in the paper "Gut metagenome in European women with normal, impaired and diabetic glucose control". Their methods included the training of a random forest for diabetes prediction. The data used for training was obtained from the authors.
 
 
-```{r cache=TRUE}
+```{r readdata,cache=TRUE}
 cluster.table <- read.delim("data/ClusterTable.txt", sep="\t", header=TRUE)
 strain.table <- read.delim("data/StrainTable.txt", sep="\t", header=TRUE)
 supptable3 <- read.csv("data/SuppTable3.csv")
@@ -39,7 +39,7 @@ p
 
 A summary of *Lactobacillus gasseri_361* abundances, which is one that is cited as being significantly different between the T2D and NGT groups using the MGCs:
 
-```{r fig.width=7, fig.height=6,echo=FALSE,warning=FALSE}
+```{r boxplot1,fig.width=7, fig.height=6,echo=FALSE,warning=FALSE}
 p <- ggplot(cluster.table, aes(x=Classification, y=Lactobacillus.gasseri_361))
 p <- p + geom_boxplot() + scale_y_log10()
 p
@@ -47,7 +47,7 @@ p
 
 A summary of *Lactobacillus gasseri JV-V03* abundances, which is one that is cited as being significantly different between the T2D and NGT groups using the MGCs:
 
-```{r fig.width=7, fig.height=6,echo=FALSE,warning=FALSE}
+```{r boxplot2,fig.width=7, fig.height=6,echo=FALSE,warning=FALSE}
 p <- ggplot(strain.table, aes(x=Classification, y=Lactobacillus.gasseri.JV.V03))
 p <- p + geom_boxplot() + scale_y_log10()
 p
@@ -55,7 +55,7 @@ p
 
 Let's try to train a random forest, first using the strain abundances. First, in figure 1 the authors say they used 915 species; however, their species/strain table has 2075 species. I'm assuming they used the 915 most abundant ones, so let's compute that.
 
-```{r topstrains}
+```{r topstrains,message=FALSE}
 strain.data <- strain.table[, -1]
 strain.mean.abundances <- apply(strain.data[, -1], 2, mean)
 
@@ -83,10 +83,13 @@ importance.table <- xtable(head(importance.strains, 30))
 print(importance.table, type="html")
 ```
 
+Let's look at how the data clusters using the proximities from the random forest.
 
 ```{r mdsstrains,fig.width=7, fig.height=6,echo=FALSE,warning=FALSE}
 MDSplot(rf.strains, strain.data.top$Classification)
 ```
+
+Now, let's train a random forest using the MGCs.
 
 ```{r rfcluster, cache=TRUE}
 cluster.data <- cluster.table[, -1]
@@ -96,6 +99,7 @@ rf.cluster <- randomForest(Classification ~ ., data=cluster.data,
                            do.trace=1000)
 ```
 
+Here are the top 30 variables ranked by accuracy using the MGCs as features:
 ```{r importanceclusters,results='asis'}
 importance.clusters <- rf.cluster$importance[order(rf.cluster$importance[, "MeanDecreaseAccuracy"], decreasing=TRUE), ]
 importance.table <- xtable(head(importance.clusters, 30))
